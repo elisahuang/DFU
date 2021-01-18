@@ -26,6 +26,7 @@ var dfu = {};
     dfu.STATUS_OK = 0x0;
 
     dfu.Device = function(device, settings) {
+        console.log("dfu.Device");
         this.device_ = device;
         this.settings = settings;
         this.intfNumber = settings["interface"].interfaceNumber;
@@ -94,6 +95,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.open = async function() {
+        console.log("dfu.Device.prototype.open");
         await this.device_.open();
         const confValue = this.settings.configuration.configurationValue;
         if (this.device_.configuration === null ||
@@ -115,6 +117,7 @@ var dfu = {};
     }
 
     dfu.Device.prototype.close = async function() {
+        console.log("dfu.Device.prototype.close");
         try {
             await this.device_.close();
         } catch (error) {
@@ -123,6 +126,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.readDeviceDescriptor = function() {
+        console.log("dfu.Device.prototype.readDeviceDescriptor");
         const GET_DESCRIPTOR = 0x06;
         const DT_DEVICE = 0x01;
         const wValue = (DT_DEVICE << 8);
@@ -145,6 +149,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.readStringDescriptor = async function(index, langID) {
+        console.log("dfu.Device.prototype.readStringDescriptor");
         if (typeof langID === 'undefined') {
             langID = 0;
         }
@@ -188,6 +193,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.readInterfaceNames = async function() {
+        console.log("dfu.Device.prototype.readInterfaceNames");
         const DT_INTERFACE = 4;
 
         let configs = {};
@@ -379,6 +385,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.requestOut = function(bRequest, data, wValue=0) {
+        console.log("dfu.Device.prototype.requestOut"); 
         return this.device_.controlTransferOut({
             "requestType": "class",
             "recipient": "interface",
@@ -400,6 +407,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.requestIn = function(bRequest, wLength, wValue=0) {
+        console.log("dfu.Device.prototype.requestIn");
         return this.device_.controlTransferIn({
             "requestType": "class",
             "recipient": "interface",
@@ -456,6 +464,9 @@ var dfu = {};
     };
 
     dfu.Device.prototype.download = function(data, blockNum) {
+        console.log("dfu.Device.prototype.download");
+        console.log(data);
+        console.log(blockNum);
         return this.requestOut(dfu.DNLOAD, data, blockNum);
     };
 
@@ -472,6 +483,7 @@ var dfu = {};
     dfu.Device.prototype.clrStatus = dfu.Device.prototype.clearStatus;
 
     dfu.Device.prototype.getStatus = function() {
+        console.log("dfu.Device.prototype.getStatus");
         return this.requestIn(dfu.GETSTATUS, 6).then(
             data =>
                 Promise.resolve({
@@ -485,6 +497,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.getState = function() {
+        console.log("dfu.Device.prototype.getState");
         return this.requestIn(dfu.GETSTATE, 1).then(
             data => Promise.resolve(data.getUint8(0)),
             error => Promise.reject("DFU GETSTATE failed: " + error)
@@ -543,6 +556,7 @@ var dfu = {};
     };
 
     dfu.Device.prototype.poll_until = async function(state_predicate) {
+        console.log("dfu.Device.prototype.poll_until");
         let dfu_status = await this.getStatus();
 
         let device = this;
@@ -557,15 +571,17 @@ var dfu = {};
             await async_sleep(dfu_status.pollTimeout);
             dfu_status = await this.getStatus();
         }
-
+      
         return dfu_status;
     };
 
     dfu.Device.prototype.poll_until_idle = function(idle_state) {
+        console.log("dfu.Device.prototype.poll_until_idle");
         return this.poll_until(state => (state == idle_state));
     };
 
     dfu.Device.prototype.do_download = async function(xfer_size, data, manifestationTolerant) {
+        console.log("dfu.Device.prototype.do_download");
         let bytes_sent = 0;
         let expected_size = data.byteLength;
         let transaction = 0;
@@ -599,14 +615,7 @@ var dfu = {};
             this.logProgress(bytes_sent, expected_size);
         }
 
-        this.logDebug("Sending empty block");
-        try {
-            await this.download(new ArrayBuffer([]), transaction++);
-        } catch (error) {
-            throw "Error during final DFU download: " + error;
-        }
 
-        this.logInfo("Wrote " + bytes_sent + " bytes");
         this.logInfo("Manifesting new firmware");
 
         if (manifestationTolerant) {
