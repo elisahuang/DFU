@@ -61,7 +61,10 @@ var dfuse = {};
                 startAddress += sectorSize * sectorCount;
             }
         }
-
+        console.log("parseMemoryDescriptor:");
+        console.log(segments);
+        console.log("name:");
+        console.log(name);
         return {"name": name, "segments": segments};
     };
 
@@ -182,6 +185,7 @@ var dfuse = {};
     };
 
     dfuse.Device.prototype.erase = async function(startAddr, length) {
+        console.log("dfuse.Device.prototype.erase");
         let segment = this.getSegment(startAddr);
         let addr = this.getSectorStart(startAddr, segment);
         const endAddr = this.getSectorEnd(startAddr + length - 1);
@@ -214,6 +218,7 @@ var dfuse = {};
     };
 
     dfuse.Device.prototype.do_download = async function(xfer_size, data, manifestationTolerant) {
+        console.log("dfuse.Device.prototype.do_download");
         if (!this.memoryInfo || ! this.memoryInfo.segments) {
             throw "No memory map available";
         }
@@ -222,13 +227,18 @@ var dfuse = {};
         
         let bytes_sent = 0;
         let expected_size = data.byteLength;
-
+        console.log("expected_size:");
+        console.log(expected_size);
         let startAddress = this.startAddress;
+        console.log("startAddress:");
+        console.log(startAddress);
         if (isNaN(startAddress)) {
             startAddress = this.memoryInfo.segments[0].start;
             this.logWarning("Using inferred start address 0x" + startAddress.toString(16));
+            console.log("Using inferred start address 0x" + startAddress.toString(16));
         } else if (this.getSegment(startAddress) === null) {
             this.logError(`Start address 0x${startAddress.toString(16)} outside of memory map bounds`);
+            console.log(`Start address 0x${startAddress.toString(16)} outside of memory map bounds`);
         }
         await this.erase(startAddress, expected_size);
 
@@ -264,7 +274,8 @@ var dfuse = {};
         this.logInfo(`Wrote ${bytes_sent} bytes`);
 
         this.logInfo("Manifesting new firmware");
-        try {
+        await this.abortToIdle();       
+        /*try {
             await this.dfuseCommand(dfuse.SET_ADDRESS, startAddress, 4);
             await this.download(new ArrayBuffer(), 0);
         } catch (error) {
@@ -275,7 +286,8 @@ var dfuse = {};
             await this.poll_until(state => (state == dfu.dfuMANIFEST));
         } catch (error) {
             this.logError(error);
-        }
+        }*/
+       
     }
 
     dfuse.Device.prototype.do_upload = async function(xfer_size, max_size) {
